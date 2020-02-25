@@ -1,0 +1,2 @@
+showpath:slam_path:using_markers
+-DCATKIN_DEVEL_PREFIX=/home/dm/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/dm/catkin_ws/install -G Unix Makefiles
