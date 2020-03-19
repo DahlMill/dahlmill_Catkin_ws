@@ -2,3 +2,5 @@
 *CMakeFiles*/
 *catkin_generated*/
 *cmake*/
+
+*.cmake
