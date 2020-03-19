@@ -2,5 +2,6 @@
 *CMakeFiles*/
 *catkin_generated*/
 *cmake*/
+src/usb_cam
 
 *.cmake
