@@ -29,6 +29,12 @@ tf/tf.h
 -
 ConvertCP.h
 -
+termios.h
+-
+unistd.h
+-
+fcntl.h
+-
 stdio.h
 -
 stdlib.h

@@ -9,7 +9,12 @@
 #include <tf/tf.h>
 #include <ConvertCP.h>
 
-// TCP接口头文件引用
+// Uart 接口头文件引用
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+// TCP 接口头文件引用
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +24,50 @@
 #include <unistd.h>
 #include <iostream>
 
+#define TCP_PC 0
+
+#define UART_PATH "/dev/ttyACM0"
+
+#define SOCKET_IP "192.168.16.115"
+
 using namespace std;
+
+int set_interface_attribs(int fd, int speed)
+{
+    struct termios tty;
+
+    if (tcgetattr(fd, &tty) < 0)
+    {
+        printf("Error from tcgetattr: %s\n", strerror(errno));
+        return -1;
+    }
+
+    cfsetospeed(&tty, (speed_t)speed);
+    cfsetispeed(&tty, (speed_t)speed);
+
+    tty.c_cflag |= (CLOCAL | CREAD); /* ignore modem controls */
+    tty.c_cflag &= ~CSIZE;
+    tty.c_cflag |= CS8;      /* 8-bit characters */
+    tty.c_cflag &= ~PARENB;  /* no parity bit */
+    tty.c_cflag &= ~CSTOPB;  /* only need 1 stop bit */
+    tty.c_cflag &= ~CRTSCTS; /* no hardware flowcontrol */
+
+    /* setup for non-canonical mode */
+    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    tty.c_oflag &= ~OPOST;
+
+    /* fetch bytes as they become available */
+    tty.c_cc[VMIN] = 1;
+    tty.c_cc[VTIME] = 1;
+
+    if (tcsetattr(fd, TCSANOW, &tty) != 0)
+    {
+        printf("Error from tcsetattr: %s\n", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
 
 void DrawPath(double x, double y, double th, ros::Publisher &path_pub, nav_msgs::Path &path)
 {
@@ -66,8 +114,8 @@ void DrawMarker(double x, double y, ros::Publisher &marker_pub, visualization_ms
     marker.pose.orientation.w = 1.0;
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
     // 设置marker的大小
-    marker.scale.x = 2.0;
-    marker.scale.y = 2.0;
+    marker.scale.x = 15.0;
+    marker.scale.y = 15.0;
     marker.scale.z = 0.5;
     // Set the color -- be sure to set alpha to something non-zero!
     // 设置marker的颜色
@@ -113,7 +161,8 @@ void DrawMarker(double x, double y, ros::Publisher &marker_pub, visualization_ms
 
 main(int argc, char **argv)
 {
-        // socket 构建
+#if TCP_PC
+    // socket 构建
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1)
     {
@@ -122,8 +171,9 @@ main(int argc, char **argv)
     }
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("192.168.2.83");
+    addr.sin_addr.s_addr = inet_addr(SOCKET_IP);
     addr.sin_port = htons(7777);
+
     int res = bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr));
     if (res == -1)
     {
@@ -148,6 +198,19 @@ main(int argc, char **argv)
     //使用返回的socket描述符，进行读写通信。
     char *ip = inet_ntoa(client.sin_addr);
     cout << "客户端： [" << ip << "]连接成功" << endl;
+#else
+    int fd;
+    char *portname = UART_PATH;
+
+    fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
+    if (fd < 0)
+    {
+        printf("Error opening %s: %s\n", portname, strerror(errno));
+        return -1;
+    }
+    /*baudrate 115200, 8 bits, no parity, 1 stop bit */
+    set_interface_attribs(fd, B115200);
+#endif
 
     ros::init(argc, argv, "slamPath");
 
@@ -163,8 +226,10 @@ main(int argc, char **argv)
     chassisPath.header.stamp = ros::Time::now();
     chassisPath.header.frame_id = "map";
 
-    double x = 0.0;
-    double y = 0.0;
+    double xSLAM = 0.0;
+    double ySLAM = 0.0;
+    double xChassis = 0.0;
+    double yChassis = 0.0;
     double th = 0.0;
 
     ros::Publisher slamMarkerPub = n.advertise<visualization_msgs::Marker>("SLAM_Marker", 1);
@@ -185,14 +250,19 @@ main(int argc, char **argv)
 
     CP_DATA getData;
     memset(&getData, 0, sizeof(CP_DATA));
-
+    unsigned long lConunt = 0;
     while (ros::ok())
     {
-        unsigned char buffer[36] = {};
+        unsigned char buffer[64] = {};
+        #if TCP_PC
         int size = read(fd, buffer, sizeof(buffer));
+        #else
+        int size = read(fd, buffer, sizeof(buffer) - 1);
+        #endif
 
-        // cout << "接收到字节数为： " << size << endl;
-        // cout << "内容： " << buffer << endl;
+        cout << "step" << lConunt << endl;
+        cout << "接收到字节数为： " << size << endl;
+        cout << "内容： " << buffer << endl;
 
         if (Arr2PosData(getData, buffer))
         {
@@ -204,17 +274,23 @@ main(int argc, char **argv)
             // cout << "check error" << endl;
         }
 
-        x += getData.SLAM.x;
-        y += getData.SLAM.y;
-        DrawPath(x, y, th, slamPathPub, slamPath);
-        DrawPath(x * (-1), y * (-1), th, chassisPathPub, chassisPath);
+        xSLAM = getData.SLAM.x;
+        ySLAM = getData.SLAM.y;
 
-        DrawMarker(x, y, slamMarkerPub, slamMarker);
-        DrawMarker(x * (-1), y * (-1), chassisMarkerPub, chassisMarker);
+        xChassis = getData.Chassis.x;
+        yChassis = getData.Chassis.y;
+
+        DrawPath(xSLAM, ySLAM, th, slamPathPub, slamPath);
+        DrawPath(xChassis, yChassis, th, chassisPathPub, chassisPath);
+
+        DrawMarker(xSLAM, ySLAM, slamMarkerPub, slamMarker);
+        DrawMarker(xChassis, yChassis, chassisMarkerPub, chassisMarker);
 
         ros::spinOnce(); // check for incoming messages
 
         loop_rate.sleep();
+
+        lConunt++;
     }
 
     return 0;

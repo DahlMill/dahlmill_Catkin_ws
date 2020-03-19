@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/opt/ros/kinetic/include/**",
+                "/home/dm/catkin_ws/src/dm_odom/include/**",
+                "/home/dm/catkin_ws/src/showpath/include/**",
+                "/home/dm/catkin_ws/src/slam_path/include/**",
+                "/home/dm/catkin_ws/src/usb_cam/include/**",
+                "/home/dm/catkin_ws/src/using_markers/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

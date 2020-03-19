@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-02-22 16:39:03
- * @LastEditTime: 2020-02-25 17:44:26
+ * @LastEditTime: 2020-02-26 16:40:47
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /catkin_ws/src/slam_path/src/ConvertCP.cpp
@@ -42,7 +42,7 @@ short CovUChar2Int(unsigned char hBit, unsigned char lBit)
  * @param {CP_DATA} SLAM 和底盘的位姿 {unsigned char} 需要存储的字节数组指针
  * @return: 
  */
-void PosData2Arr(CP_DATA &post, unsigned char (&arr)[24])
+void PosData2Arr(CP_DATA &post, unsigned char *arr)
 {
     // int slamX = post.SLAM.x;
     // int slamY = post.SLAM.y;
@@ -54,7 +54,7 @@ void PosData2Arr(CP_DATA &post, unsigned char (&arr)[24])
     // int chassisY = post.Chassis.y;
     // int chassisYaw = post.Chassis.yaw;
     // unsigned char chassisStatus = post.Chassis.status;
-    
+
     arr[0] = 0x55;
     arr[1] = 0x55;
     arr[2] = 0xAA;
@@ -94,7 +94,7 @@ void PosData2Arr(CP_DATA &post, unsigned char (&arr)[24])
     arr[19] = post.Chassis.status;
 
     int checkSum = 0;
-    for(int i =0; i < (19 - 4) + 1; i++)
+    for (int i = 0; i < (19 - 4) + 1; i++)
     {
         checkSum += arr[i + 4];
     }
@@ -110,7 +110,6 @@ void PosData2Arr(CP_DATA &post, unsigned char (&arr)[24])
     // cout << hex << (int)arr[5] << ", ";
     // cout << hex << ((int)arr[4] << 8) + arr[5] << ", ";
     // cout << dec << endl;
-
 }
 
 /**
@@ -118,36 +117,36 @@ void PosData2Arr(CP_DATA &post, unsigned char (&arr)[24])
  * @param {CP_DATA} SLAM 和底盘的位姿 {unsigned char} 输入的字节数组
  * @return: 数据较验是否成功
  */
-bool Arr2PosData(CP_DATA &get, unsigned char (&arr)[36])
+bool Arr2PosData(CP_DATA &get, unsigned char *arr)
 {
-    if(arr[0] != 0x55)
+    if (arr[0] != 0x55)
         return false;
-    if(arr[1] != 0x55)
+    if (arr[1] != 0x55)
         return false;
-    if(arr[2] != 0xAA)
+    if (arr[2] != 0xAA)
         return false;
-    if(arr[3] != 0xAA)
+    if (arr[3] != 0xAA)
         return false;
 
-    if(arr[22] != 0x55)
+    if (arr[22] != 0x55)
         return false;
-    if(arr[23] != 0xBB)
+    if (arr[23] != 0xBB)
         return false;
-    
+
     int checkSum = 0;
-    for(int i =0; i < (19 - 4) + 1; i++)
+    for (int i = 0; i < (19 - 4) + 1; i++)
     {
         checkSum += arr[i + 4];
     }
 
     int checkSum2Arr = arr[20] << 8 | arr[21];
 
-    if(checkSum != checkSum2Arr)
+    if (checkSum != checkSum2Arr)
     {
         cout << "checkSum:" << checkSum << "!=" << checkSum2Arr << endl;
         return false;
     }
-    
+
     // cout << "check Pass" << endl;
     get.SLAM.x = CovUChar2Int(arr[4], arr[5]);
     get.SLAM.y = CovUChar2Int(arr[6], arr[7]);
@@ -160,7 +159,6 @@ bool Arr2PosData(CP_DATA &get, unsigned char (&arr)[36])
 
     get.SLAM.status = arr[18];
     get.Chassis.status = arr[19];
-    
 
     return true;
 }
@@ -186,7 +184,6 @@ void ShowPos(CP_DATA get)
     cout << hex << "Chassis Status : " << (int)get.Chassis.status << endl;
 
     cout << dec << endl;
-
 }
 
 /**
@@ -198,7 +195,7 @@ void ShowHexArr(unsigned char arr[], int len)
 {
     // int len = sizeof(arr) / sizeof(int);
 
-    for(int i = 0; i < len; i ++)
+    for (int i = 0; i < len; i++)
     {
         cout << hex << (int)arr[i] << ", ";
         // printf("%02X, ", arr[i]);

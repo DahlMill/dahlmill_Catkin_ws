@@ -1,0 +1,4 @@
+<launch>
+    <node name="showpath" pkg = "showpath" type = "showpath">
+    </node>
+</launch>
