@@ -1,2 +1,4 @@
 *ORB_SLAM*/
 *CMakeFiles*/
+*catkin_generated*/
+*cmake*/

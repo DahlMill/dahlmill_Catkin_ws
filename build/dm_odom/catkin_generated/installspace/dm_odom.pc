@@ -1,8 +1,0 @@
-prefix=/home/dm/catkin_ws/install
-
-Name: dm_odom
-Description: Description of dm_odom
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
