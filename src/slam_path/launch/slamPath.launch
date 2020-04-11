@@ -1,0 +1,6 @@
+<launch>
+    <node name="slamPath" pkg = "slam_path" type = "slamPath">
+    </node>
+    <node name="rviz" pkg = "rviz" type = "rviz">
+    </node>
+</launch>
